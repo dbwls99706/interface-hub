@@ -19,7 +19,10 @@
 
 # production
 /build
-
+/dev.db
+/dev.db-journal
+dev.db
+dev.db-journal
 # misc
 .DS_Store
 *.pem
