@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Interface {
+  id          String      @id @default(cuid())
+  name        String
+  protocol    String      // REST | SOAP | MQ | BATCH | SFTP
+  endpoint    String
+  config      String      @default("{}")
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  executions  Execution[]
+
+  @@index([protocol])
+  @@index([isActive])
+}
+
+model Execution {
+  id            String         @id @default(cuid())
+  interfaceId   String
+  interface_    Interface      @relation(fields: [interfaceId], references: [id], onDelete: Cascade)
+  status        String         // PENDING | RUNNING | SUCCESS | FAILED | RETRIED
+  startedAt     DateTime       @default(now())
+  finishedAt    DateTime?
+  durationMs    Int?
+  errorMessage  String?
+  request       String?
+  response      String?
+  retryOfId     String?
+  retryOf       Execution?     @relation("Retry", fields: [retryOfId], references: [id])
+  retries       Execution[]    @relation("Retry")
+  logs          ExecutionLog[]
+
+  @@index([interfaceId, startedAt])
+  @@index([status])
+}
+
+model ExecutionLog {
+  id          String    @id @default(cuid())
+  executionId String
+  execution   Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  level       String    // DEBUG | INFO | WARN | ERROR
+  message     String
+  metadata    String?
+  loggedAt    DateTime  @default(now())
+
+  @@index([executionId, loggedAt])
+}
