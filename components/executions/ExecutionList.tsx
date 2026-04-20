@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import useSWR from "swr";
+import useSWRInfinite from "swr/infinite";
 import { format, formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { EyeIcon, InboxIcon, Loader2Icon } from "lucide-react";
@@ -30,30 +30,53 @@ import {
   type ListExecutionsResult,
 } from "@/lib/actions/executions-query";
 
+const PAGE_SIZE = 20;
+
+type SwrKey = readonly [
+  "executions",
+  string,
+  string,
+  string,
+  string | null,
+];
+
 export const ExecutionList = ({
   filters,
-  initialData,
 }: {
   filters: ListExecutionsParams;
-  initialData?: ListExecutionsResult;
 }) => {
-  const swrKey = [
-    "executions",
-    filters.interfaceId ?? "",
-    filters.status ?? "",
-    filters.protocol ?? "",
-  ];
+  const getKey = (
+    pageIndex: number,
+    previous: ListExecutionsResult | null,
+  ): SwrKey | null => {
+    if (previous && !previous.nextCursor) return null;
+    return [
+      "executions",
+      filters.interfaceId ?? "",
+      filters.status ?? "",
+      filters.protocol ?? "",
+      pageIndex === 0 ? null : (previous?.nextCursor ?? null),
+    ];
+  };
 
-  const { data, error, isLoading } = useSWR<ListExecutionsResult>(
-    swrKey,
-    () => listExecutions(filters),
-    {
-      fallbackData: initialData,
-      refreshInterval: (latest) =>
-        latest?.items.some((x) => isLiveStatus(x.status)) ? 3000 : 0,
-      revalidateOnFocus: false,
-    },
-  );
+  const { data, error, isLoading, isValidating, size, setSize } =
+    useSWRInfinite<ListExecutionsResult, Error, typeof getKey>(
+      getKey,
+      ([, , , , cursor]) =>
+        listExecutions({
+          ...filters,
+          limit: PAGE_SIZE,
+          cursor: cursor ?? undefined,
+        }),
+      {
+        refreshInterval: (latest) =>
+          latest?.some((p) => p.items.some((x) => isLiveStatus(x.status)))
+            ? 3000
+            : 0,
+        revalidateOnFocus: false,
+        revalidateFirstPage: true,
+      },
+    );
 
   if (error) {
     return (
@@ -72,7 +95,12 @@ export const ExecutionList = ({
     );
   }
 
-  const items = data?.items ?? [];
+  const items = data?.flatMap((p) => p.items) ?? [];
+  const lastPage = data?.[data.length - 1];
+  const hasMore = !!lastPage?.nextCursor;
+  const isLoadingMore =
+    isValidating && !!data && data.length === size && size > 1;
+
   if (items.length === 0) {
     return (
       <div className="rounded-xl border border-dashed bg-card/40 py-16 flex flex-col items-center justify-center text-center gap-3">
@@ -90,87 +118,107 @@ export const ExecutionList = ({
   }
 
   return (
-    <div className="rounded-xl border bg-card overflow-hidden">
-      <TooltipProvider>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/40">
-              <TableHead className="pl-4 w-[180px]">시작 시각</TableHead>
-              <TableHead>인터페이스</TableHead>
-              <TableHead className="w-[110px]">상태</TableHead>
-              <TableHead className="w-[100px]">소요시간</TableHead>
-              <TableHead>에러</TableHead>
-              <TableHead className="w-[80px] pr-4 text-right">액션</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((it) => (
-              <TableRow key={it.id} className="group">
-                <TableCell className="pl-4 py-3 text-xs text-muted-foreground">
-                  <Tooltip>
-                    <TooltipTrigger render={<span />}>
-                      {formatDistanceToNow(it.startedAt, {
-                        addSuffix: true,
-                        locale: ko,
-                      })}
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {format(it.startedAt, "yyyy-MM-dd HH:mm:ss")}
-                    </TooltipContent>
-                  </Tooltip>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Link
-                      href={`/interfaces/${it.interfaceId}`}
-                      className="font-medium hover:underline truncate"
-                    >
-                      {it.interfaceName}
-                    </Link>
-                    <ProtocolBadge protocol={it.protocol} />
-                  </div>
-                  {it.retryOfId && (
-                    <Link
-                      href={`/executions/${it.retryOfId}`}
-                      className="text-[10px] text-muted-foreground hover:underline mt-0.5 block"
-                    >
-                      ↺ 원본 실행 보기
-                    </Link>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={it.status} />
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
-                  {formatDuration(it.durationMs)}
-                </TableCell>
-                <TableCell>
-                  {it.errorMessage ? (
-                    <span
-                      className="block max-w-[280px] truncate text-xs text-destructive"
-                      title={it.errorMessage}
-                    >
-                      {it.errorMessage}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="pr-4 text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="상세 보기"
-                    render={<Link href={`/executions/${it.id}`} />}
-                  >
-                    <EyeIcon />
-                  </Button>
-                </TableCell>
+    <div className="space-y-3">
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <TooltipProvider>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <TableHead className="pl-4 w-[180px]">시작 시각</TableHead>
+                <TableHead>인터페이스</TableHead>
+                <TableHead className="w-[110px]">상태</TableHead>
+                <TableHead className="w-[100px]">소요시간</TableHead>
+                <TableHead>에러</TableHead>
+                <TableHead className="w-[80px] pr-4 text-right">액션</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TooltipProvider>
+            </TableHeader>
+            <TableBody>
+              {items.map((it) => (
+                <TableRow key={it.id} className="group">
+                  <TableCell className="pl-4 py-3 text-xs text-muted-foreground">
+                    <Tooltip>
+                      <TooltipTrigger render={<span />}>
+                        {formatDistanceToNow(it.startedAt, {
+                          addSuffix: true,
+                          locale: ko,
+                        })}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {format(it.startedAt, "yyyy-MM-dd HH:mm:ss")}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Link
+                        href={`/interfaces/${it.interfaceId}`}
+                        className="font-medium hover:underline truncate"
+                      >
+                        {it.interfaceName}
+                      </Link>
+                      <ProtocolBadge protocol={it.protocol} />
+                    </div>
+                    {it.retryOfId && (
+                      <Link
+                        href={`/executions/${it.retryOfId}`}
+                        className="text-[10px] text-muted-foreground hover:underline mt-0.5 block"
+                      >
+                        ↺ 원본 실행 보기
+                      </Link>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={it.status} />
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatDuration(it.durationMs)}
+                  </TableCell>
+                  <TableCell>
+                    {it.errorMessage ? (
+                      <span
+                        className="block max-w-[280px] truncate text-xs text-destructive"
+                        title={it.errorMessage}
+                      >
+                        {it.errorMessage}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="pr-4 text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="상세 보기"
+                      render={<Link href={`/executions/${it.id}`} />}
+                    >
+                      <EyeIcon />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TooltipProvider>
+      </div>
+
+      {hasMore && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setSize(size + 1)}
+          disabled={isLoadingMore}
+        >
+          {isLoadingMore ? (
+            <>
+              <Loader2Icon className="animate-spin" />
+              불러오는 중...
+            </>
+          ) : (
+            "더 보기"
+          )}
+        </Button>
+      )}
     </div>
   );
 };

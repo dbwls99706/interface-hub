@@ -4,10 +4,7 @@ import {
   type ExecutionStatus as ExecutionStatusT,
   type Protocol as ProtocolT,
 } from "@/lib/types/db";
-import {
-  listExecutions,
-  listInterfaceOptions,
-} from "@/lib/actions/executions-query";
+import { listInterfaceOptions } from "@/lib/actions/executions-query";
 import { Filters } from "@/components/executions/Filters";
 import { ExecutionList } from "@/components/executions/ExecutionList";
 
@@ -33,10 +30,7 @@ export default async function ExecutionsPage({
   const protocol = isProtocol(protocolRaw) ? protocolRaw : undefined;
 
   const filters = { interfaceId, status, protocol };
-  const [initial, options] = await Promise.all([
-    listExecutions(filters),
-    listInterfaceOptions(),
-  ]);
+  const options = await listInterfaceOptions();
 
   return (
     <div className="space-y-6">
@@ -49,7 +43,7 @@ export default async function ExecutionsPage({
 
       <Filters value={filters} options={options} />
 
-      <ExecutionList filters={filters} initialData={initial} />
+      <ExecutionList filters={filters} />
     </div>
   );
 }
