@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -92,7 +92,7 @@ export const InterfaceForm = ({
   const {
     register,
     handleSubmit,
-    setValue,
+    control,
     setError,
     watch,
     formState: { errors },
@@ -159,22 +159,25 @@ export const InterfaceForm = ({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[200px_1fr]">
         <div className="space-y-2">
-          <Label>프로토콜</Label>
-          <Select
-            value={protocol}
-            onValueChange={(v) => setValue("protocol", v as Protocol)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PROTOCOLS.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {p}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="protocol">프로토콜</Label>
+          <Controller
+            control={control}
+            name="protocol"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger id="protocol" className="w-full">
+                  <SelectValue placeholder="프로토콜 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROTOCOLS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
           {errors.protocol && (
             <p className="text-xs text-destructive">
               {errors.protocol.message}
