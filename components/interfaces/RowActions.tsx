@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -34,6 +35,7 @@ import { deleteInterface } from "@/lib/actions/interfaces";
 import { executeInterface } from "@/lib/actions/executions";
 
 export const RowActions = ({ id, name }: { id: string; name: string }) => {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [isExecuting, startExecute] = useTransition();
@@ -58,10 +60,9 @@ export const RowActions = ({ id, name }: { id: string; name: string }) => {
         toast.error(result.error, { id: toastId });
         return;
       }
-      const execId = result.data?.executionId ?? "";
-      toast.success(`실행 완료 (실행 ID: ${execId.slice(0, 8)})`, {
-        id: toastId,
-      });
+      toast.dismiss(toastId);
+      const execId = result.data?.executionId;
+      if (execId) router.push(`/executions/${execId}`);
     });
   };
 

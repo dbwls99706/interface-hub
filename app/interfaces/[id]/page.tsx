@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
-import { ChevronLeftIcon, HistoryIcon } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
+import { ChevronLeftIcon, EyeIcon, HistoryIcon } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 import {
@@ -12,10 +13,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { ProtocolBadge } from "@/components/interfaces/ProtocolBadge";
 import { ActiveToggle } from "@/components/interfaces/ActiveToggle";
 import { DetailActions } from "@/components/interfaces/DetailActions";
-import { parseJson } from "@/lib/types/db";
+import { StatusBadge } from "@/components/executions/StatusBadge";
+import { formatDuration } from "@/components/executions/formatters";
+import { parseJson, type ExecutionStatus } from "@/lib/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +43,18 @@ export default async function InterfaceDetailPage({
 
   const parsedConfig = parseJson<unknown>(item.config, {});
   const prettyConfig = JSON.stringify(parsedConfig, null, 2);
+
+  const recentExecutions = await prisma.execution.findMany({
+    where: { interfaceId: id },
+    orderBy: { startedAt: "desc" },
+    take: 10,
+    select: {
+      id: true,
+      status: true,
+      startedAt: true,
+      durationMs: true,
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -138,23 +162,84 @@ export default async function InterfaceDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HistoryIcon className="size-4 text-muted-foreground" />
-            최근 실행
-          </CardTitle>
-          <CardDescription>
-            최근 10건의 실행 결과가 표시됩니다.
-          </CardDescription>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <HistoryIcon className="size-4 text-muted-foreground" />
+                최근 실행
+              </CardTitle>
+              <CardDescription>
+                최근 10건의 실행 결과가 표시됩니다.
+              </CardDescription>
+            </div>
+            {recentExecutions.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                render={
+                  <Link href={`/executions?interfaceId=${item.id}`} />
+                }
+              >
+                전체 보기
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border border-dashed py-12 flex flex-col items-center text-center gap-2">
-            <p className="text-sm text-muted-foreground">
-              아직 실행 이력이 없습니다.
-            </p>
-            <p className="text-xs text-muted-foreground/80">
-              실행 기능은 Phase 4에서 활성화됩니다.
-            </p>
-          </div>
+          {recentExecutions.length === 0 ? (
+            <div className="rounded-lg border border-dashed py-12 flex flex-col items-center text-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                아직 실행 이력이 없습니다.
+              </p>
+              <p className="text-xs text-muted-foreground/80">
+                상단의 실행 버튼으로 첫 실행을 시작해보세요.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40">
+                    <TableHead className="pl-4 w-[200px]">시작 시각</TableHead>
+                    <TableHead className="w-[110px]">상태</TableHead>
+                    <TableHead className="w-[100px]">소요시간</TableHead>
+                    <TableHead className="w-[60px] pr-4 text-right"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentExecutions.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell
+                        className="pl-4 py-2 text-xs text-muted-foreground"
+                        title={format(e.startedAt, "yyyy-MM-dd HH:mm:ss")}
+                      >
+                        {formatDistanceToNow(e.startedAt, {
+                          addSuffix: true,
+                          locale: ko,
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={e.status as ExecutionStatus} />
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatDuration(e.durationMs)}
+                      </TableCell>
+                      <TableCell className="pr-4 text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="실행 상세"
+                          render={<Link href={`/executions/${e.id}`} />}
+                        >
+                          <EyeIcon />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
