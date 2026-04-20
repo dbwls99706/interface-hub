@@ -3,9 +3,22 @@ import "dotenv/config";
 import { PrismaClient } from "../lib/generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-const adapter = new PrismaLibSql({
-  url: process.env.DATABASE_URL ?? "file:./dev.db",
-});
+const rawUrl = process.env.DATABASE_URL ?? "file:./dev.db";
+
+// libsql://...?authToken=... 형태를 url + authToken으로 분리
+const buildLibSqlConfig = (raw: string): { url: string; authToken?: string } => {
+  if (raw.startsWith("file:")) return { url: raw };
+  try {
+    const parsed = new URL(raw);
+    const authToken = parsed.searchParams.get("authToken") ?? undefined;
+    parsed.searchParams.delete("authToken");
+    return { url: parsed.toString(), authToken };
+  } catch {
+    return { url: raw };
+  }
+};
+
+const adapter = new PrismaLibSql(buildLibSqlConfig(rawUrl));
 const prisma = new PrismaClient({ adapter });
 
 type Protocol = "REST" | "SOAP" | "MQ" | "BATCH" | "SFTP";
