@@ -18,10 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  interfaceCreateSchema,
-  interfaceUpdateSchema,
-} from "@/lib/schemas/interface";
+import { interfaceCreateSchema } from "@/lib/schemas/interface";
 import { Protocol } from "@/lib/types/db";
 import {
   createInterface,
@@ -92,8 +89,6 @@ export const InterfaceForm = ({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const schema = mode === "edit" ? interfaceUpdateSchema : interfaceCreateSchema;
-
   const {
     register,
     handleSubmit,
@@ -102,7 +97,7 @@ export const InterfaceForm = ({
     watch,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(interfaceCreateSchema),
     defaultValues: {
       name: initialData?.name ?? "",
       protocol: (initialData?.protocol as Protocol) ?? Protocol.REST,

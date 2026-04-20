@@ -13,11 +13,11 @@ export type ActionResult<T = void> =
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
 
 const toFieldErrors = (
-  issues: { path: (string | number)[]; message: string }[],
+  issues: ReadonlyArray<{ path: PropertyKey[]; message: string }>,
 ): Record<string, string[]> => {
   const out: Record<string, string[]> = {};
   for (const issue of issues) {
-    const key = issue.path.join(".") || "_";
+    const key = issue.path.map((p) => String(p)).join(".") || "_";
     if (!out[key]) out[key] = [];
     out[key].push(issue.message);
   }
