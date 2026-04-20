@@ -181,7 +181,7 @@ const buildExecutionsFor = (
 
   for (let i = 0; i < count; i += 1) {
     const startedAt = new Date(
-      Date.now() - Math.random() * 30 * 86_400_000,
+      Date.now() - Math.random() * 3 * 86_400_000,
     );
     const durationMs = randInt(minD, maxD);
     const finishedAt = new Date(startedAt.getTime() + durationMs);

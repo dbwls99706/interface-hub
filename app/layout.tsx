@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 const NAV_ITEMS: { label: string; href: string; disabled?: boolean; note?: string }[] = [
   { label: "인터페이스", href: "/interfaces" },
   { label: "실행 이력", href: "/executions" },
-  { label: "대시보드", href: "/dashboard", disabled: true, note: "Phase 6" },
+  { label: "대시보드", href: "/dashboard" },
 ];
 
 export default function RootLayout({
