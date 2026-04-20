@@ -734,6 +734,23 @@ def section_vibe(doc: Document) -> None:
         col_widths_cm=[5.0, 10.8],
     )
 
+    add_heading(doc, "8.7 레슨의 전파: CLAUDE.md를 통한 반복 실수 제거", level=2)
+    add_bullets(
+        doc,
+        [
+            "Interface Hub 개발 중 Prisma 7, Recharts, shadcn/ui, Turso 등 여러 지점에서 예상치 못한 이슈를 만났다.",
+            "단순히 해결하고 넘어가는 대신, 각 이슈와 해결 방식을 CLAUDE.md에 '프로젝트별 환경 메모' 형식으로 기록했다.",
+            "이후 같은 기술 스택으로 자매 프로젝트 Cost Compass를 시작할 때 CLAUDE.md를 복사하고 프로젝트 컨텍스트만 교체했다.",
+            "결과: Interface Hub에서 겪은 11개 이슈 중 9개가 Cost Compass Phase 0~3에서 재발하지 않았다. Phase 1 DB 셋업은 Interface Hub보다 약 절반 시간에 완료됐다.",
+            "이것이 바이브코딩이 단순한 AI 코드 생성과 다른 이유다. 프롬프트 엔지니어링만큼이나 CLAUDE.md 같은 컨텍스트 문서의 설계가 중요하다.",
+        ],
+    )
+    add_paragraph(
+        doc,
+        "AI는 기억하지 못하지만, 개발자가 남긴 CLAUDE.md는 다음 세션에서 다시 읽힌다.",
+        bold=True,
+    )
+
 
 def section_validation(doc: Document) -> None:
     add_heading(doc, "9. 검증 전략", level=1)
@@ -827,6 +844,49 @@ def section_troubleshooting(doc: Document) -> None:
         "동시에 과거 실패 기록을 초기화하는 scripts/turso-reset.ts를 추가해 재시도 경로를 명확히 했다.",
     )
 
+    add_heading(doc, "10.4 Prisma 7 모델 타입명 규약", level=2)
+    add_paragraph(
+        doc,
+        "증상: lib/actions/*.ts에서 "
+        "import type { Project, Division } from \"@/lib/generated/prisma/models\" 선언이 "
+        "TS2305 'no exported member Project' 에러를 냈다.",
+    )
+    add_paragraph(
+        doc,
+        "원인: Prisma 7 Preview에서 생성되는 모델 타입에는 'Model' 접미사가 붙는다. "
+        "실제 export는 ProjectModel, DivisionModel, CostItemModel 등이다.",
+    )
+    add_paragraph(
+        doc,
+        "해결: 전 파일의 import를 Model 접미사가 붙은 이름으로 교체했다. "
+        "이후 같은 실수를 막기 위해 CLAUDE.md의 'Prisma 환경 메모' 섹션에 규약을 고정해 두고, "
+        "다음 프로젝트에도 동일한 메모가 상속되도록 했다.",
+    )
+
+    add_heading(doc, "10.5 prisma.config.ts의 datasource.url은 CLI 경로에서 여전히 필요", level=2)
+    add_paragraph(
+        doc,
+        "증상: prisma.config.ts에서 datasource 블록을 제거하자 npx prisma migrate dev가 "
+        "'Environment variable not found: DATABASE_URL' 오류와 함께 실패했다.",
+    )
+    add_paragraph(
+        doc,
+        "원인: Prisma 7에서 deprecated된 것은 schema.prisma의 datasource.url이지, "
+        "prisma.config.ts의 datasource가 아니다. CLI는 여전히 config의 datasource를 읽어 "
+        "마이그레이션 대상 DB를 결정한다.",
+    )
+    add_paragraph(
+        doc,
+        "해결: schema.prisma에서는 datasource.url을 제거하고(런타임은 driver adapter가 담당), "
+        "prisma.config.ts에는 datasource.url을 유지했다(CLI 전용). "
+        "두 레이어가 서로 다른 역할을 맡는다는 점을 인지하는 것이 핵심이었다.",
+    )
+    add_paragraph(
+        doc,
+        "교훈: deprecated의 범위를 레이어 단위로 정확히 구분해야 한다. 릴리스 노트만 보고 "
+        "섣불리 제거하면 CLI 경로가 끊긴다. 이 교훈은 CLAUDE.md에도 함께 남겼다.",
+    )
+
 
 def section_appendix(doc: Document) -> None:
     add_heading(doc, "11. 부록", level=1)
@@ -900,6 +960,21 @@ def section_appendix(doc: Document) -> None:
             ["TURSO_AUTH_TOKEN", "Turso 인증 토큰", "eyJhbGciOi..."],
         ],
         col_widths_cm=[4.2, 5.6, 6.0],
+    )
+
+    add_heading(doc, "11.5 자매 프로젝트: Cost Compass", level=2)
+    add_paragraph(
+        doc,
+        "Interface Hub의 CLAUDE.md를 상속받아 동일한 기술 스택으로 '분석 도구'를 만든 자매 사례다. "
+        "환경 메모가 전파된 덕분에 Phase 0부터 Phase 3까지를 반나절에 완성했다.",
+    )
+    add_bullets(
+        doc,
+        [
+            "URL: https://cost-compass.vercel.app",
+            "저장소: https://github.com/dbwls99706/cost-compass",
+            "의의: Interface Hub에서 겪은 환경 이슈 9건이 재발하지 않음을 확인한 실증.",
+        ],
     )
 
 

@@ -9,6 +9,7 @@
 ![Vercel](https://img.shields.io/badge/Vercel-deploy-000?logo=vercel)
 
 > 노아에이티에스 2025년 상반기 연구소 인력 채용 포트폴리오 · 개발 기간 1일 · 바이브코딩(Claude Code 기반)
+> 자매 프로젝트: [Cost Compass](https://github.com/dbwls99706/cost-compass) (주제 2, 원가/관리회계 대시보드)
 
 ## 라이브 데모
 
@@ -125,6 +126,8 @@ ExecuteInterface (Server Action)
 - "요구 정의 → 프롬프트 → 생성 → 검증 → 커밋" 루프를 작게 자르는 것이 속도와 품질을 동시에 잡는다.
 - AI에게 막연히 "만들어줘"라고 하지 않고, 타입 시그니처와 폴더 구조와 검증 기준을 먼저 못박는 프롬프트가 결과물 품질을 결정한다.
 - AI가 만든 코드는 반드시 컴파일러와 실동작으로 검증한다. 매 Phase 끝에 `tsc --noEmit` 0과 화면 회귀 점검을 통과해야 다음 Phase로 넘어간다.
+
+이 프로젝트에서 축적한 레슨은 `CLAUDE.md`에 기록되어, 자매 프로젝트 [Cost Compass](https://github.com/dbwls99706/cost-compass)가 동일한 기술 함정을 피하고 반나절 내에 구축되는 기반이 되었다.
 
 ## 로컬 실행 방법
 
