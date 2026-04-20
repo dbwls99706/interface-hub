@@ -8,7 +8,8 @@
       "Bash(cp \"인터페이스 목록.png\" 01.png)",
       "Bash(cp \"실행 이력 목록.png\" 02.png)",
       "Bash(cp \"실행 상세.png\" 03.png)",
-      "Bash(cp \"대시보드.png\" 04.png)"
+      "Bash(cp \"대시보드.png\" 04.png)",
+      "Bash(python *)"
     ]
   }
 }
