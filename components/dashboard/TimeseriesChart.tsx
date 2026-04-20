@@ -62,7 +62,7 @@ export const TimeseriesChart = ({
   data: TimeseriesBucket[];
 }) => (
   <div className="relative h-[280px] w-full">
-    <ResponsiveContainer width="100%" height="100%" debounce={1}>
+    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={1}>
       <BarChart
         data={data}
         margin={{ top: 8, right: 8, bottom: 0, left: -20 }}
