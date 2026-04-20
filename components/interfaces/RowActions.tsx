@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   EyeIcon,
+  Loader2Icon,
   MoreHorizontalIcon,
   PencilIcon,
   PlayIcon,
@@ -29,20 +30,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { deleteInterface } from "@/lib/actions/interfaces";
+import { executeInterface } from "@/lib/actions/executions";
 
 export const RowActions = ({ id, name }: { id: string; name: string }) => {
   const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isDeleting, startDelete] = useTransition();
+  const [isExecuting, startExecute] = useTransition();
 
   const onDelete = () => {
-    startTransition(async () => {
+    startDelete(async () => {
       const result = await deleteInterface(id);
       if (result && result.ok === false) {
         toast.error(result.error);
@@ -50,6 +47,21 @@ export const RowActions = ({ id, name }: { id: string; name: string }) => {
       }
       toast.success("삭제되었습니다.");
       setOpen(false);
+    });
+  };
+
+  const onExecute = () => {
+    const toastId = toast.loading("실행 중...");
+    startExecute(async () => {
+      const result = await executeInterface(id);
+      if (!result.ok) {
+        toast.error(result.error, { id: toastId });
+        return;
+      }
+      const execId = result.data?.executionId ?? "";
+      toast.success(`실행 완료 (실행 ID: ${execId.slice(0, 8)})`, {
+        id: toastId,
+      });
     });
   };
 
@@ -72,19 +84,10 @@ export const RowActions = ({ id, name }: { id: string; name: string }) => {
             <PencilIcon />
             수정
           </DropdownMenuItem>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger render={<span className="block" />}>
-                <DropdownMenuItem disabled>
-                  <PlayIcon />
-                  실행
-                </DropdownMenuItem>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                Phase 4에서 활성화됩니다.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <DropdownMenuItem onClick={onExecute} disabled={isExecuting}>
+            {isExecuting ? <Loader2Icon className="animate-spin" /> : <PlayIcon />}
+            {isExecuting ? "실행 중..." : "실행"}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
@@ -106,13 +109,13 @@ export const RowActions = ({ id, name }: { id: string; name: string }) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>취소</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={onDelete}
-              disabled={isPending}
+              disabled={isDeleting}
             >
-              {isPending ? "삭제 중..." : "삭제"}
+              {isDeleting ? "삭제 중..." : "삭제"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

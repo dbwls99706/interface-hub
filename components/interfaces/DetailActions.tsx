@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { PencilIcon, PlayIcon, Trash2Icon } from "lucide-react";
+import {
+  Loader2Icon,
+  PencilIcon,
+  PlayIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,13 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { deleteInterface } from "@/lib/actions/interfaces";
+import { executeInterface } from "@/lib/actions/executions";
 
 export const DetailActions = ({
   id,
@@ -32,10 +32,11 @@ export const DetailActions = ({
   name: string;
 }) => {
   const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isDeleting, startDelete] = useTransition();
+  const [isExecuting, startExecute] = useTransition();
 
   const onDelete = () => {
-    startTransition(async () => {
+    startDelete(async () => {
       const result = await deleteInterface(id);
       if (result && result.ok === false) {
         toast.error(result.error);
@@ -45,19 +46,32 @@ export const DetailActions = ({
     });
   };
 
+  const onExecute = () => {
+    const toastId = toast.loading("실행 중...");
+    startExecute(async () => {
+      const result = await executeInterface(id);
+      if (!result.ok) {
+        toast.error(result.error, { id: toastId });
+        return;
+      }
+      const execId = result.data?.executionId ?? "";
+      toast.success(`실행 완료 (실행 ID: ${execId.slice(0, 8)})`, {
+        id: toastId,
+      });
+    });
+  };
+
   return (
     <div className="flex items-center gap-2">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger render={<span />}>
-            <Button variant="outline" size="sm" disabled>
-              <PlayIcon />
-              실행
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Phase 4에서 활성화됩니다.</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onExecute}
+        disabled={isExecuting}
+      >
+        {isExecuting ? <Loader2Icon className="animate-spin" /> : <PlayIcon />}
+        {isExecuting ? "실행 중..." : "실행"}
+      </Button>
 
       <Button variant="outline" size="sm" render={<Link href={`/interfaces/${id}/edit`} />}>
         <PencilIcon />
@@ -83,13 +97,13 @@ export const DetailActions = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>취소</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>취소</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={onDelete}
-              disabled={isPending}
+              disabled={isDeleting}
             >
-              {isPending ? "삭제 중..." : "삭제"}
+              {isDeleting ? "삭제 중..." : "삭제"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
